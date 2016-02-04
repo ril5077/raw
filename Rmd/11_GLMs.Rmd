@@ -1,0 +1,158 @@
+---
+author: "Emma Li"
+output: slidy_presentation
+duration: 30
+fig_height: 4
+fig_width: 10
+title: "GLM"
+---
+
+
+# LM
+Linear Model makes several key assumptions:
+
+* Linear relationship between X and E(Y)=miu.
+* Multivariate normality.
+* No or little multicollinearity.
+* No auto-correlation.
+* Error term is the same across all values of the independent variables (homogeneity). 
+
+
+# GLM
+Generalized Linear Model is the general case of ordinary linear regression that allows for response variables that have error distribution models other than a normal distribution. For example, 
+
+Poisson distribution when the dependent variable is count in nature or when the events are rare in nature.
+
+Binomial distribution when the dependent variable is binary (e.g., yes or no).
+
+Key Assumptions:
+
+* Linear relationship between X and g(E(Y))=g(miu).
+* No or little multicollinearity.
+* No auto-correlation.
+* Error term is the same across all values of the independent variables (homogeneity). 
+
+# Link Function
+* Poisson distribution when the dependent variable is count in nature or when the events are rare in nature.
+
+log: g(E(Y))=log(E(Y))=X*Beta
+
+* Binomial distribution when the dependent variable is binary (e.g., yes or no).
+
+logit: g(E(Y))=ln(E(Y)/(1-E(Y)))=X*Beta
+
+or
+
+Inverse CDF: g(E(Y))=Inverse of Normal CDF(E(Y))=X*Beta
+
+or
+
+Complementary log-log: g(E(Y))=log(-log(1-E(Y)))=X*Beta
+
+## Why? What distinguish these link functions?
+
+# Simulated Data
+This data set records the numbers of personal auto claims incurred in 2015. The numbers of insured auto, the policy holders' ages, and their family sizes are also recorded by policy level.  
+
+Variables     | Desc
+------------- | -------------
+clm		        | Claim Counts
+age		        | Age of Policyholders
+num_car		    | Number of Insured Personal Auto
+familiy_size  | Family Size of Policyholders
+
+```{r }
+rootDir<-"/Volumes/LEMMARIL/RPM Workshop/R Workshop/Github/rpm2016/"
+clm_cnt <- read.csv(file=paste0(rootDir,"11_GLMs.csv"))
+```
+
+# Summary and Graphs
+```{r }
+dim(clm_cnt)
+colnames(clm_cnt)
+summary(clm_cnt)
+
+apply(clm_cnt,2,table)
+
+avg<-function(x) {
+  data<-t(aggregate(clm_cnt[,"clm"],by=list(clm_cnt[,x]),FUN=mean))
+  colnames(data)<-data[1,]
+  data<-data[2,]
+  barplot(data,main=x,xlab=x,ylab="Claim Count Averages")
+}
+avg("age")
+avg("num_car")
+avg("family_size")
+
+cor(clm_cnt[,-1])
+```
+
+
+
+
+# What distribution and what link function? 
+* Poisson distribution when the dependent variable is count in nature or when the events are rare in nature.
+
+log: g(E(Y))=log(E(Y))=X*Beta
+
+```{r }
+poisson_reg <- glm(clm~ age+num_car+family_size,   data = clm_cnt,   family = poisson)
+summary(poisson_reg)
+
+poisson_reg2 <- glm(clm~ age+num_car,   data = clm_cnt,   family = poisson)
+summary(poisson_reg2)
+```
+
+# Alternative distribution and what link function? 
+```{r }
+summary(clm_cnt$clm)
+table(clm_cnt$clm)
+
+```
+
+* Binomial distribution when the dependent variable is binary (e.g., yes or no).
+
+logit: g(E(Y))=ln(E(Y)/(1-E(Y)))=X*Beta
+
+```{r }
+clm_cnt$clm_cap <- ifelse(clm_cnt$clm==0,0,1)
+logistic_reg <- glm(clm_cap~ age+num_car+family_size,   data= clm_cnt,   family = binomial)
+summary(logistic_reg)
+logistic_reg2 <- glm(clm_cap~ age+num_car,   data= clm_cnt,   family = binomial)
+summary(logistic_reg2)
+```
+
+# Model Selection
+AIC=2*k-2*ln(L)
+
+k = the number of parameter
+
+L = the maximized value of the likelihood function of the model M, p(x|X, Beta) 
+
+```{r }
+AIC(poisson_reg)
+AIC(poisson_reg2)
+
+AIC(logistic_reg)
+AIC(logistic_reg2)
+```
+
+BIC=k*ln(n)-2*ln(L)
+
+k = the number of parameter
+
+L = the maximized value of the likelihood function of the model M, p(x|X, Beta) 
+
+n = the number of observations
+
+```{r cars}
+BIC(poisson_reg)
+BIC(poisson_reg2)
+
+BIC(logistic_reg)
+BIC(logistic_reg2)
+```
+
+The BIC generally penalizes the number of parameters more strongly than the AIC, because k is multiplied by a larger number, ln(n), in BIC than by 2 in AIC
+
+
